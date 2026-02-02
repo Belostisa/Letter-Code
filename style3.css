@@ -1,0 +1,257 @@
+/* =========================
+   RESET
+========================= */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* Prevent horizontal scroll on mobile */
+html, body {
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+
+/* =========================
+   BODY
+========================= */
+body {
+  font-family: "Courier New", monospace;
+  background: black;
+  color: #00ff88;
+  min-height: 100vh;
+}
+
+/* =========================
+   FULL BACKGROUND VIDEO (NEW)
+========================= */
+.bg-video {
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.bg-video video {
+  filter:
+    brightness(1.15)
+    contrast(1.05)
+    saturate(1.1);
+
+  opacity: 0.9;
+}
+
+
+/* =========================
+   FLOWERS
+========================= */
+.flowers-section {
+  min-height: 60vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  pointer-events: none;
+}
+
+.flowers-video {
+  width: min(70vw, 900px);
+  mix-blend-mode: screen;
+  opacity: 0.85;
+}
+
+/* =========================
+   ENVELOPE
+========================= */
+.envelope-section {
+  height: 40vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  z-index: 3;
+}
+
+.envelope {
+  position: relative;
+  width: 340px;
+  height: 220px;
+  cursor: pointer;
+  perspective: 1200px;
+}
+
+/* Envelope back */
+.envelope-back {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 255, 120, 0.04);
+  border: 1px solid #00ff88;
+}
+
+/* Flap */
+.envelope-flap {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 50%;
+  clip-path: polygon(0% 0%, 100% 0%, 50% 100%);
+  background: rgba(0, 255, 136, 0.24);
+  transform-origin: top center;
+  transition: transform 0.9s ease;
+  box-shadow:
+    0 0 10px rgba(0, 255, 136, 0.8),
+    0 0 26px rgba(0, 255, 136, 0.45),
+    inset 0 -8px 14px rgba(0, 255, 136, 0.35);
+  z-index: 2;
+}
+
+/* Inbox label */
+.inbox-label {
+  position: absolute;
+  top: 72%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 14px;
+  letter-spacing: 3px;
+  color: #00ff88;
+  text-shadow: 0 0 6px rgba(124, 255, 107, 0.8);
+  z-index: 3;
+}
+
+/* Open state */
+.envelope.open .envelope-flap {
+  transform: rotateX(-180deg);
+}
+
+/* =========================
+   EMAIL OVERLAY
+========================= */
+.email-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 20;
+}
+
+.email-window {
+  width: min(92vw, 900px);
+  max-height: min(70vh, 620px);
+  background: rgba(10, 25, 10, 0.9);
+  border: 1px solid #7CFF6B;
+  box-shadow:
+    0 0 22px rgba(124, 255, 107, 0.25),
+    0 0 60px rgba(124, 255, 107, 0.08);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.email-body {
+  padding: 18px 22px;
+  font-size: 15px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  flex: 1;
+  overflow-y: auto;
+  color: #7CFF6B;
+}
+
+.email-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  background: rgba(124, 255, 107, 0.08);
+  border-bottom: 1px solid rgba(124, 255, 107, 0.35);
+  font-size: 14px;
+}
+
+.email-title {
+  color: #7AFF6A;
+  letter-spacing: 1px;
+  text-shadow:
+    0 0 6px rgba(122, 255, 106, 0.8),
+    0 0 12px rgba(122, 255, 106, 0.25);
+}
+
+.email-close {
+  background: none;
+  border: none;
+  color: #7AFF6A;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 2px 6px;
+}
+
+.email-close:hover {
+  color: #B6FF9A;
+}
+
+.email-footer {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  padding: 10px 16px;
+  border-top: 1px solid rgba(124, 255, 107, 0.35);
+  background: rgba(124, 255, 107, 0.06);
+}
+
+.email-footer button {
+  background: transparent;
+  border: 1px solid #7CFF6B;
+  color: #7CFF6B;
+  padding: 4px 10px;
+  font-family: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  box-shadow: 0 0 8px rgba(124, 255, 107, 0.2);
+}
+
+.email-footer button:hover {
+  background: rgba(124, 255, 107, 0.15);
+}
+
+#pageIndicator {
+  justify-self: center;
+  color: #9AFF7A;
+  font-size: 13px;
+  letter-spacing: 1px;
+}
+
+/* =========================
+   MOBILE — keep your flowers/envelope behavior
+========================= */
+@media (max-width: 600px) {
+
+  /* FLOWERS — still big, but leave space below */
+  .flowers-section {
+    height: 62vh;
+  }
+
+  .flowers-video {
+    width: 140vw;
+    max-width: none;
+  }
+
+  /* ENVELOPE — move UP into the marked zone */
+  .envelope-section {
+    height: 28vh;
+    margin-top: -6vh;        /* pulls envelope upward */
+    display: flex;
+    align-items: center;
+  }
+
+  .envelope {
+    width: 260px;
+    height: 170px;
+  }
+}
+
+
