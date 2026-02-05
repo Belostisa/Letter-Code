@@ -63,38 +63,65 @@ body {
 }
 
 /* =========================
-   WAVE SLOT (HUD LINE)
+   WAVE OVERLAY (no layout shift)
 ========================= */
-.wave-wrap{
-  position: relative;
-  z-index: 6;
-  display: flex;
-  justify-content: center;
-  margin: 8px 0 16px;
+.wave-overlay{
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 56vh;                 /* move this up/down to match your screenshot */
+  height: 120px;             /* waveform thickness area */
+  z-index: 8;
+  pointer-events: none;      /* never blocks clicks */
+  opacity: 0;
+  transition: opacity .45s ease;
 }
 
-.wave-slot{
-  position: relative;
-  width: min(92vw, 980px);
-  height: 80px;
-  display: grid;
-  place-items: center;
-
-  pointer-events: none; /* only button clickable */
+.wave-overlay.active{
+  opacity: 1;
 }
 
 #waveCanvas{
   width: 100%;
   height: 100%;
   display: block;
-
-  opacity: 0;                 /* hidden until click */
-  transition: opacity .45s ease;
 }
 
-.wave-slot.active #waveCanvas{
-  opacity: 1;
+/* Play button floating on top (optional) */
+.wave-play{
+  position: fixed;
+  left: 50%;
+  top: 56vh;                 /* keep aligned with overlay */
+  transform: translate(-50%, -50%);
+  z-index: 9;
+
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+
+  background: rgba(120, 220, 255, 0.10);
+  border: 1px solid rgba(120, 220, 255, 0.70);
+  color: rgba(200, 245, 255, 0.95);
+
+  font-size: 18px;
+  cursor: pointer;
+
+  box-shadow:
+    0 0 10px rgba(120,220,255,.35),
+    0 0 22px rgba(120,220,255,.18);
+
+  transition: transform .25s ease, opacity .25s ease;
 }
+
+.wave-play:hover{
+  transform: translate(-50%, -50%) scale(1.06);
+}
+
+.wave-play.hidden{
+  opacity: 0;
+  pointer-events: none;
+}
+
 
 .neon-play{
   position: absolute;
@@ -321,6 +348,7 @@ body {
     height: 170px;
   }
 }
+
 
 
 
