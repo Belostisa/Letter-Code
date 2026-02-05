@@ -1,14 +1,14 @@
 /* =========================
    RESET
 ========================= */
-* {
+*{
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
 
 /* Prevent horizontal scroll on mobile */
-html, body {
+html, body{
   width: 100%;
   max-width: 100vw;
   overflow-x: hidden;
@@ -17,7 +17,7 @@ html, body {
 /* =========================
    BODY
 ========================= */
-body {
+body{
   font-family: "Courier New", monospace;
   background: black;
   color: #00ff88;
@@ -25,9 +25,9 @@ body {
 }
 
 /* =========================
-   FULL BACKGROUND VIDEO (NEW)
+   FULL BACKGROUND VIDEO
 ========================= */
-.bg-video {
+.bg-video{
   position: fixed;
   inset: 0;
   z-index: -2;
@@ -35,20 +35,20 @@ body {
   overflow: hidden;
 }
 
-.bg-video video {
-  filter:
-    brightness(1.15)
-    contrast(1.05)
-    saturate(1.1);
+.bg-video video{
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 
+  filter: brightness(1.15) contrast(1.05) saturate(1.1);
   opacity: 0.9;
 }
-
 
 /* =========================
    FLOWERS
 ========================= */
-.flowers-section {
+.flowers-section{
   min-height: 60vh;
   display: flex;
   justify-content: center;
@@ -56,23 +56,31 @@ body {
   pointer-events: none;
 }
 
-.flowers-video {
+.flowers-video{
   width: min(70vw, 900px);
+  display: block;
   mix-blend-mode: screen;
   opacity: 0.85;
 }
 
 /* =========================
    WAVE OVERLAY (no layout shift)
+   Responsive Y positioning
 ========================= */
+:root{
+  /* Desktop + overall placement (raise/lower by changing 46vh) */
+  --wave-y: clamp(300px, 46vh, 520px);
+}
+
 .wave-overlay{
   position: fixed;
   left: 0;
   right: 0;
-  top: 56vh;                 /* move this up/down to match your screenshot */
-  height: 120px;             /* waveform thickness area */
-  z-index: 8;
-  pointer-events: none;      /* never blocks clicks */
+  top: var(--wave-y);
+  height: 120px;
+  z-index: 50;
+
+  pointer-events: none;
   opacity: 0;
   transition: opacity .45s ease;
 }
@@ -87,13 +95,13 @@ body {
   display: block;
 }
 
-/* Play button floating on top (optional) */
+/* Play button floating on top */
 .wave-play{
   position: fixed;
   left: 50%;
-  top: 56vh;                 /* keep aligned with overlay */
-  transform: translate(-50%, -50%);
-  z-index: 9;
+  top: var(--wave-y);
+  transform: translate(-50%, -50%) translateZ(0);
+  z-index: 51;
 
   width: 44px;
   height: 44px;
@@ -101,7 +109,7 @@ body {
 
   background: rgba(120, 220, 255, 0.10);
   border: 1px solid rgba(120, 220, 255, 0.70);
-  color: rgba(200, 245, 255, 0.95);
+  color: rgba(210, 250, 255, 0.95);
 
   font-size: 18px;
   cursor: pointer;
@@ -114,7 +122,7 @@ body {
 }
 
 .wave-play:hover{
-  transform: translate(-50%, -50%) scale(1.06);
+  transform: translate(-50%, -50%) scale(1.06) translateZ(0);
 }
 
 .wave-play.hidden{
@@ -122,45 +130,10 @@ body {
   pointer-events: none;
 }
 
-
-.neon-play{
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-
-  background: rgba(0,255,136,0.10);
-  border: 1px solid rgba(0,255,136,0.65);
-  color: rgba(0,255,136,0.90);
-
-  font-size: 18px;
-  cursor: pointer;
-
-  box-shadow:
-    0 0 8px rgba(0,255,136,.35),
-    0 0 16px rgba(0,255,136,.18);
-
-  pointer-events: auto;
-  z-index: 7;
-}
-
-.neon-play:hover{
-  transform: translate(-50%, -50%) scale(1.06);
-}
-
-.neon-play.hidden{
-  opacity: 0;
-  pointer-events: none;
-}
-
 /* =========================
    ENVELOPE
 ========================= */
-.envelope-section {
+.envelope-section{
   height: 40vh;
   display: flex;
   justify-content: center;
@@ -169,7 +142,7 @@ body {
   z-index: 3;
 }
 
-.envelope {
+.envelope{
   position: relative;
   width: 340px;
   height: 220px;
@@ -178,7 +151,7 @@ body {
 }
 
 /* Envelope back */
-.envelope-back {
+.envelope-back{
   position: absolute;
   inset: 0;
   background: rgba(0, 255, 120, 0.04);
@@ -186,7 +159,7 @@ body {
 }
 
 /* Flap */
-.envelope-flap {
+.envelope-flap{
   position: absolute;
   top: 0;
   left: 0;
@@ -204,7 +177,7 @@ body {
 }
 
 /* Inbox label */
-.inbox-label {
+.inbox-label{
   position: absolute;
   top: 72%;
   left: 50%;
@@ -217,14 +190,14 @@ body {
 }
 
 /* Open state */
-.envelope.open .envelope-flap {
+.envelope.open .envelope-flap{
   transform: rotateX(-180deg);
 }
 
 /* =========================
    EMAIL OVERLAY
 ========================= */
-.email-overlay {
+.email-overlay{
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.45);
@@ -234,7 +207,7 @@ body {
   z-index: 20;
 }
 
-.email-window {
+.email-window{
   width: min(92vw, 900px);
   max-height: min(70vh, 620px);
   background: rgba(10, 25, 10, 0.9);
@@ -247,7 +220,7 @@ body {
   position: relative;
 }
 
-.email-body {
+.email-body{
   padding: 18px 22px;
   font-size: 15px;
   line-height: 1.6;
@@ -257,7 +230,7 @@ body {
   color: #7CFF6B;
 }
 
-.email-header {
+.email-header{
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -267,7 +240,7 @@ body {
   font-size: 14px;
 }
 
-.email-title {
+.email-title{
   color: #7AFF6A;
   letter-spacing: 1px;
   text-shadow:
@@ -275,7 +248,7 @@ body {
     0 0 12px rgba(122, 255, 106, 0.25);
 }
 
-.email-close {
+.email-close{
   background: none;
   border: none;
   color: #7AFF6A;
@@ -285,11 +258,11 @@ body {
   padding: 2px 6px;
 }
 
-.email-close:hover {
+.email-close:hover{
   color: #B6FF9A;
 }
 
-.email-footer {
+.email-footer{
   display: grid;
   grid-template-columns: auto 1fr auto;
   align-items: center;
@@ -298,7 +271,7 @@ body {
   background: rgba(124, 255, 107, 0.06);
 }
 
-.email-footer button {
+.email-footer button{
   background: transparent;
   border: 1px solid #7CFF6B;
   color: #7CFF6B;
@@ -309,11 +282,11 @@ body {
   box-shadow: 0 0 8px rgba(124, 255, 107, 0.2);
 }
 
-.email-footer button:hover {
+.email-footer button:hover{
   background: rgba(124, 255, 107, 0.15);
 }
 
-#pageIndicator {
+#pageIndicator{
   justify-self: center;
   color: #9AFF7A;
   font-size: 13px;
@@ -321,33 +294,43 @@ body {
 }
 
 /* =========================
-   MOBILE — keep your flowers/envelope behavior
+   MOBILE
 ========================= */
-@media (max-width: 600px) {
+@media (max-width: 600px){
 
-  /* FLOWERS — still big, but leave space below */
-  .flowers-section {
+  /* Lift wave + button higher on phones */
+  :root{
+    --wave-y: clamp(240px, 38vh, 380px);
+  }
+
+  .wave-overlay{
+    height: 110px;
+  }
+
+  /* FLOWERS */
+  .flowers-section{
     height: 62vh;
   }
 
-  .flowers-video {
+  .flowers-video{
     width: 140vw;
     max-width: none;
   }
 
-  /* ENVELOPE — move UP into the marked zone */
-  .envelope-section {
+  /* ENVELOPE — move UP */
+  .envelope-section{
     height: 28vh;
-    margin-top: -6vh;        /* pulls envelope upward */
+    margin-top: -6vh;
     display: flex;
     align-items: center;
   }
 
-  .envelope {
+  .envelope{
     width: 260px;
     height: 170px;
   }
 }
+
 
 
 
