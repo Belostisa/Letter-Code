@@ -63,6 +63,74 @@ body {
 }
 
 /* =========================
+   WAVE SLOT (HUD LINE)
+========================= */
+.wave-wrap{
+  position: relative;
+  z-index: 6;
+  display: flex;
+  justify-content: center;
+  margin: 8px 0 16px;
+}
+
+.wave-slot{
+  position: relative;
+  width: min(92vw, 980px);
+  height: 80px;
+  display: grid;
+  place-items: center;
+
+  pointer-events: none; /* only button clickable */
+}
+
+#waveCanvas{
+  width: 100%;
+  height: 100%;
+  display: block;
+
+  opacity: 0;                 /* hidden until click */
+  transition: opacity .45s ease;
+}
+
+.wave-slot.active #waveCanvas{
+  opacity: 1;
+}
+
+.neon-play{
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+
+  background: rgba(0,255,136,0.10);
+  border: 1px solid rgba(0,255,136,0.65);
+  color: rgba(0,255,136,0.90);
+
+  font-size: 18px;
+  cursor: pointer;
+
+  box-shadow:
+    0 0 8px rgba(0,255,136,.35),
+    0 0 16px rgba(0,255,136,.18);
+
+  pointer-events: auto;
+  z-index: 7;
+}
+
+.neon-play:hover{
+  transform: translate(-50%, -50%) scale(1.06);
+}
+
+.neon-play.hidden{
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* =========================
    ENVELOPE
 ========================= */
 .envelope-section {
@@ -253,5 +321,6 @@ body {
     height: 170px;
   }
 }
+
 
 
