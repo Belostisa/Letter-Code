@@ -16,9 +16,10 @@
     </video>
   </div>
   
-  <audio id="bgAudio" loop>
-  <source src="media/deftoness.mp3" type="audio/mpeg">
+  <audio id="bgAudio" loop preload="auto" crossorigin="anonymous">
+  <source src="media/sextape.mp3" type="audio/mpeg">
 </audio>
+
 
   <!-- FLOWERS VIDEO (unchanged) -->
   <section class="flowers-section">
@@ -26,6 +27,14 @@
       <source src="media/flowers2.mp4" type="video/mp4">
     </video>
   </section>
+
+  <!-- WAVE (hidden until first click) -->
+<section class="wave-wrap">
+  <div class="wave-slot" id="waveSlot">
+    <canvas id="waveCanvas"></canvas>
+    <button class="neon-play" id="playWave" aria-label="Play">▶</button>
+  </div>
+</section>
 
 
   <!-- ENVELOPE SECTION (unchanged) -->
@@ -92,8 +101,8 @@ function enableAudio() {
   audio.play();
   document.removeEventListener("click", enableAudio);
 }
-
 document.addEventListener("click", enableAudio);
+
 
 
 function closeEmail() {
@@ -120,8 +129,197 @@ function prevPage() {
     renderPage();
   }
 }
+  /* -------------------------
+   WAVEFORM (uses bgAudio)
+   - hidden until play button click
+   - less saturated glow
+------------------------- */
+const waveSlot = document.getElementById("waveSlot");
+const playWave = document.getElementById("playWave");
+const audioEl  = document.getElementById("bgAudio");
+const canvas   = document.getElementById("waveCanvas");
+const ctx      = canvas.getContext("2d", { alpha: true });
+
+let audioCtx, analyser, srcNode, timeData;
+let started = false;
+let levelSmooth = 0;
+let rafId = null;
+
+function resizeCanvas(){
+  const dpr = Math.max(1, window.devicePixelRatio || 1);
+  canvas.width = Math.floor(canvas.clientWidth * dpr);
+  canvas.height = Math.floor(canvas.clientHeight * dpr);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+window.addEventListener("resize", resizeCanvas);
+resizeCanvas();
+
+function setupAnalyser(){
+  if (audioCtx) return;
+
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  analyser = audioCtx.createAnalyser();
+  analyser.fftSize = 2048;
+  analyser.smoothingTimeConstant = 0.88;
+
+  timeData = new Uint8Array(analyser.frequencyBinCount);
+
+  // IMPORTANT: only create ONE MediaElementSource per <audio>
+  srcNode = audioCtx.createMediaElementSource(audioEl);
+  srcNode.connect(analyser);
+  analyser.connect(audioCtx.destination);
+}
+
+const lerp  = (a,b,t)=>a+(b-a)*t;
+const clamp = (v,a,b)=>Math.min(b,Math.max(a,v));
+
+function drawNeonStroke(drawPath){
+  ctx.save();
+  ctx.globalCompositeOperation = "source-over"; // calmer than lighter
+
+  // outer glow
+  ctx.shadowColor = "rgba(0,255,136,0.10)";
+  ctx.shadowBlur = 10;
+  ctx.lineWidth = 2.0;
+  ctx.strokeStyle = "rgba(0,255,136,0.10)";
+  drawPath(); ctx.stroke();
+
+  // mid glow
+  ctx.shadowColor = "rgba(0,255,136,0.20)";
+  ctx.shadowBlur = 6;
+  ctx.lineWidth = 1.3;
+  ctx.strokeStyle = "rgba(0,255,136,0.20)";
+  drawPath(); ctx.stroke();
+
+  // core
+  ctx.shadowBlur = 0;
+  ctx.lineWidth = 0.9;
+  ctx.strokeStyle = "rgba(170,255,220,0.70)";
+  drawPath(); ctx.stroke();
+
+  ctx.restore();
+}
+
+function readLevel(){
+  if (!analyser) return 0;
+
+  analyser.getByteTimeDomainData(timeData);
+  let sum = 0;
+  for (let i=0;i<timeData.length;i++){
+    const v = (timeData[i]-128)/128;
+    sum += v*v;
+  }
+  const rms = Math.sqrt(sum / timeData.length);
+  levelSmooth = lerp(levelSmooth, rms, 0.08);
+  return levelSmooth;
+}
+
+function envelope(u){
+  return Math.pow(Math.sin(Math.PI*u), 1.35);
+}
+
+function startLoop(){
+  if (rafId) return;
+
+  const loop = (now)=>{
+    rafId = requestAnimationFrame(loop);
+
+    const w = canvas.clientWidth;
+    const h = canvas.clientHeight;
+
+    if (!started){
+      ctx.clearRect(0,0,w,h);
+      return;
+    }
+
+    ctx.clearRect(0,0,w,h);
+
+    const level = readLevel();
+    const t = now / 1000;
+
+    // calmer amplitude
+    const baseAmp = 1.2;
+    const maxAmp  = 30;
+    const ampPx = baseAmp + maxAmp * Math.pow(level, 0.85);
+
+    const centerY = h * 0.5;
+    const padX = 18;
+    const points = 260;
+    const dx = (w - padX*2) / (points-1);
+
+    // subtle center bloom
+    ctx.save();
+    ctx.globalAlpha = 0.05 + 0.10 * level;
+    ctx.fillStyle = "rgba(0,255,136,0.14)";
+    ctx.fillRect(0, centerY-1, w, 2);
+    ctx.restore();
+
+    function strand(offsetY, phase, opacity){
+      ctx.save();
+      ctx.globalAlpha = opacity;
+
+      const path = ()=>{
+        ctx.beginPath();
+        for (let i=0;i<points;i++){
+          const u = i/(points-1);
+          const x = padX + i*dx;
+
+          const idx = Math.floor(u * (timeData.length-1));
+          const a = (timeData[idx]-128)/128;
+
+          const idle = (1 - clamp(level*1.2, 0, 1));
+          const slow   = Math.sin(t*1.15 + u*9  + phase) * 0.24 * idle;
+          const ripple = Math.sin(t*2.60 + u*34 + phase) * 0.10 * idle;
+
+          const audioMix = 0.20 + 0.65 * clamp(level*1.6, 0, 1);
+
+          const y = centerY + offsetY + envelope(u) * ampPx * (a*audioMix + slow + ripple);
+
+          if (i===0) ctx.moveTo(x,y);
+          else ctx.lineTo(x,y);
+        }
+      };
+
+      drawNeonStroke(path);
+      ctx.restore();
+    }
+
+    strand(-2.2, 0.0, 0.92);
+    strand(+2.2, 1.1, 0.75);
+  };
+
+  rafId = requestAnimationFrame(loop);
+}
+
+playWave.addEventListener("click", async (e)=>{
+  e.stopPropagation(); // so it doesn't trigger other click handlers
+
+  setupAnalyser();
+  if (audioCtx.state === "suspended") await audioCtx.resume();
+
+  // start audio
+  audioEl.muted = false;
+  audioEl.volume = 0.35;
+
+  // If already playing, just toggle UI
+  if (audioEl.paused) {
+    try { await audioEl.play(); } catch(err) { console.error(err); }
+  }
+
+  // show + animate waves
+  started = true;
+  waveSlot.classList.add("active");
+  startLoop();
+
+  // optional hide the button after starting
+  playWave.classList.add("hidden");
+
+  resizeCanvas();
+});
+
 </script>
 
 </body>
 </html>
+
 
