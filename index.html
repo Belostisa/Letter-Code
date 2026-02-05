@@ -27,6 +27,14 @@
       <source src="media/flowers2.mp4" type="video/mp4">
     </video>
   </section>
+  
+<!-- WAVE OVERLAY (does NOT affect layout) -->
+<div class="wave-overlay" id="waveOverlay" aria-hidden="true">
+  <canvas id="waveCanvas"></canvas>
+</div>
+
+<!-- Optional: use your existing click-anywhere to start audio OR keep a button -->
+<button class="wave-play" id="playWave" aria-label="Play">▶</button>
 
   <!-- WAVE (hidden until first click) -->
 <section class="wave-wrap">
@@ -94,16 +102,6 @@ function openEmail() {
   document.getElementById("emailOverlay").style.display = "flex";
   renderPage();
 }
-function enableAudio() {
-  const audio = document.getElementById("bgAudio");
-  audio.muted = false;
-  audio.volume = 0.35;
-  audio.play();
-  document.removeEventListener("click", enableAudio);
-}
-document.addEventListener("click", enableAudio);
-
-
 
 function closeEmail() {
   document.querySelector(".envelope").classList.remove("open");
@@ -129,25 +127,25 @@ function prevPage() {
     renderPage();
   }
 }
-  /* -------------------------
-   WAVEFORM (uses bgAudio)
-   - hidden until play button click
-   - less saturated glow
+/* -------------------------
+   FULL-WIDTH WAVE OVERLAY
+   - uses bgAudio
+   - light blue, thicker, more movement
+   - fixed overlay (no layout shift)
 ------------------------- */
-const waveSlot = document.getElementById("waveSlot");
-const playWave = document.getElementById("playWave");
-const audioEl  = document.getElementById("bgAudio");
-const canvas   = document.getElementById("waveCanvas");
-const ctx      = canvas.getContext("2d", { alpha: true });
+const playBtn   = document.getElementById("playWave");
+const audioEl   = document.getElementById("bgAudio");
+const overlay   = document.getElementById("waveOverlay");
+const canvas    = document.getElementById("waveCanvas");
+const ctx       = canvas.getContext("2d", { alpha: true });
 
-let audioCtx, analyser, srcNode, timeData;
-let started = false;
-let levelSmooth = 0;
+let audioCtx, analyser, srcNode, timeData, freqData;
 let rafId = null;
+let started = false;
 
 function resizeCanvas(){
   const dpr = Math.max(1, window.devicePixelRatio || 1);
-  canvas.width = Math.floor(canvas.clientWidth * dpr);
+  canvas.width  = Math.floor(canvas.clientWidth * dpr);
   canvas.height = Math.floor(canvas.clientHeight * dpr);
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 }
@@ -160,62 +158,78 @@ function setupAnalyser(){
   audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   analyser = audioCtx.createAnalyser();
   analyser.fftSize = 2048;
-  analyser.smoothingTimeConstant = 0.88;
+  analyser.smoothingTimeConstant = 0.82;
 
   timeData = new Uint8Array(analyser.frequencyBinCount);
+  freqData = new Uint8Array(analyser.frequencyBinCount);
 
-  // IMPORTANT: only create ONE MediaElementSource per <audio>
+  // Only create ONE MediaElementSource per <audio>
   srcNode = audioCtx.createMediaElementSource(audioEl);
   srcNode.connect(analyser);
   analyser.connect(audioCtx.destination);
 }
 
-const lerp  = (a,b,t)=>a+(b-a)*t;
 const clamp = (v,a,b)=>Math.min(b,Math.max(a,v));
+const lerp  = (a,b,t)=>a+(b-a)*t;
 
-function drawNeonStroke(drawPath){
-  ctx.save();
-  ctx.globalCompositeOperation = "source-over"; // calmer than lighter
+let rmsSmooth = 0;
+let trebleSmooth = 0;
 
-  // outer glow
-  ctx.shadowColor = "rgba(0,255,136,0.10)";
-  ctx.shadowBlur = 10;
-  ctx.lineWidth = 2.0;
-  ctx.strokeStyle = "rgba(0,255,136,0.10)";
-  drawPath(); ctx.stroke();
-
-  // mid glow
-  ctx.shadowColor = "rgba(0,255,136,0.20)";
-  ctx.shadowBlur = 6;
-  ctx.lineWidth = 1.3;
-  ctx.strokeStyle = "rgba(0,255,136,0.20)";
-  drawPath(); ctx.stroke();
-
-  // core
-  ctx.shadowBlur = 0;
-  ctx.lineWidth = 0.9;
-  ctx.strokeStyle = "rgba(170,255,220,0.70)";
-  drawPath(); ctx.stroke();
-
-  ctx.restore();
-}
-
-function readLevel(){
-  if (!analyser) return 0;
+function readAudio(){
+  if (!analyser) return { level: 0, treble: 0 };
 
   analyser.getByteTimeDomainData(timeData);
+  analyser.getByteFrequencyData(freqData);
+
+  // RMS loudness
   let sum = 0;
   for (let i=0;i<timeData.length;i++){
     const v = (timeData[i]-128)/128;
     sum += v*v;
   }
   const rms = Math.sqrt(sum / timeData.length);
-  levelSmooth = lerp(levelSmooth, rms, 0.08);
-  return levelSmooth;
+  rmsSmooth = lerp(rmsSmooth, rms, 0.09);
+
+  // Treble energy (adds “electric” motion)
+  let hi = 0;
+  const start = Math.floor(freqData.length * 0.35);
+  for (let i=start;i<freqData.length;i++) hi += freqData[i];
+  const hiNorm = hi / ((freqData.length - start) * 255);
+  trebleSmooth = lerp(trebleSmooth, clamp(hiNorm,0,1), 0.12);
+
+  return { level: rmsSmooth, treble: trebleSmooth };
+}
+
+function strokeNeonBlue(drawPath){
+  ctx.save();
+  ctx.globalCompositeOperation = "lighter";
+
+  // OUTER glow
+  ctx.shadowColor = "rgba(120,220,255,0.18)";
+  ctx.shadowBlur = 26;
+  ctx.lineWidth = 8.0;                           // thick glow
+  ctx.strokeStyle = "rgba(120,220,255,0.10)";
+  drawPath(); ctx.stroke();
+
+  // MID glow
+  ctx.shadowColor = "rgba(120,220,255,0.35)";
+  ctx.shadowBlur = 16;
+  ctx.lineWidth = 4.5;
+  ctx.strokeStyle = "rgba(120,220,255,0.22)";
+  drawPath(); ctx.stroke();
+
+  // CORE bright line
+  ctx.shadowBlur = 0;
+  ctx.lineWidth = 2.2;
+  ctx.strokeStyle = "rgba(210,250,255,0.92)";
+  drawPath(); ctx.stroke();
+
+  ctx.restore();
 }
 
 function envelope(u){
-  return Math.pow(Math.sin(Math.PI*u), 1.35);
+  // tight ends so it fades at edges like your reference
+  return Math.pow(Math.sin(Math.PI*u), 1.45);
 }
 
 function startLoop(){
@@ -226,37 +240,32 @@ function startLoop(){
 
     const w = canvas.clientWidth;
     const h = canvas.clientHeight;
-
-    if (!started){
-      ctx.clearRect(0,0,w,h);
-      return;
-    }
-
     ctx.clearRect(0,0,w,h);
 
-    const level = readLevel();
+    if (!started) return;
+
+    const { level, treble } = readAudio();
     const t = now / 1000;
 
-    // calmer amplitude
-    const baseAmp = 1.2;
-    const maxAmp  = 30;
-    const ampPx = baseAmp + maxAmp * Math.pow(level, 0.85);
+    // MORE movement:
+    // baseAmp makes it move even when quiet
+    // maxAmp grows with music
+    const baseAmp = 10;                              // movement at silence
+    const maxAmp  = 85;                              // big movement at loud
+    const ampPx   = baseAmp + maxAmp * Math.pow(level, 0.85);
+
+    // extra “electric” agitation from treble
+    const electric = 0.25 + 0.85 * treble;
 
     const centerY = h * 0.5;
-    const padX = 18;
-    const points = 260;
-    const dx = (w - padX*2) / (points-1);
+    const padX = 0;                                  // full width
+    const points = 420;                              // smooth
+    const dx = (w - padX*2) / (points - 1);
 
-    // subtle center bloom
-    ctx.save();
-    ctx.globalAlpha = 0.05 + 0.10 * level;
-    ctx.fillStyle = "rgba(0,255,136,0.14)";
-    ctx.fillRect(0, centerY-1, w, 2);
-    ctx.restore();
-
-    function strand(offsetY, phase, opacity){
+    // Draw a double filament
+    function strand(offsetY, phase, alpha){
       ctx.save();
-      ctx.globalAlpha = opacity;
+      ctx.globalAlpha = alpha;
 
       const path = ()=>{
         ctx.beginPath();
@@ -264,62 +273,68 @@ function startLoop(){
           const u = i/(points-1);
           const x = padX + i*dx;
 
-          const idx = Math.floor(u * (timeData.length-1));
-          const a = (timeData[idx]-128)/128;
+          // Audio sample (-1..1)
+          const idx = Math.floor(u * (timeData.length - 1));
+          const a = (timeData[idx] - 128) / 128;
 
-          const idle = (1 - clamp(level*1.2, 0, 1));
-          const slow   = Math.sin(t*1.15 + u*9  + phase) * 0.24 * idle;
-          const ripple = Math.sin(t*2.60 + u*34 + phase) * 0.10 * idle;
+          // layered motion (stronger than before)
+          const slow   = Math.sin(t*1.2 + u*10 + phase) * 0.55;
+          const ripple = Math.sin(t*(3.0*electric) + u*(52*electric) + phase) * 0.35;
 
-          const audioMix = 0.20 + 0.65 * clamp(level*1.6, 0, 1);
-
-          const y = centerY + offsetY + envelope(u) * ampPx * (a*audioMix + slow + ripple);
+          // blend: audio + motion
+          const y = centerY + offsetY
+            + envelope(u) * ampPx * (a * (0.55 + 0.45*level) + slow*0.28 + ripple*0.22);
 
           if (i===0) ctx.moveTo(x,y);
           else ctx.lineTo(x,y);
         }
       };
 
-      drawNeonStroke(path);
+      strokeNeonBlue(path);
       ctx.restore();
     }
 
-    strand(-2.2, 0.0, 0.92);
-    strand(+2.2, 1.1, 0.75);
+    // subtle center bloom bar
+    ctx.save();
+    ctx.globalCompositeOperation = "lighter";
+    ctx.globalAlpha = 0.12 + 0.22 * level;
+    ctx.fillStyle = "rgba(120,220,255,0.18)";
+    ctx.fillRect(0, centerY-1, w, 2);
+    ctx.restore();
+
+    strand(-4.0, 0.0, 0.90);
+    strand(+4.0, 1.3, 0.78);
   };
 
   rafId = requestAnimationFrame(loop);
 }
 
-playWave.addEventListener("click", async (e)=>{
-  e.stopPropagation(); // so it doesn't trigger other click handlers
+playBtn.addEventListener("click", async (e)=>{
+  e.stopPropagation();
 
   setupAnalyser();
   if (audioCtx.state === "suspended") await audioCtx.resume();
 
-  // start audio
   audioEl.muted = false;
   audioEl.volume = 0.35;
 
-  // If already playing, just toggle UI
   if (audioEl.paused) {
-    try { await audioEl.play(); } catch(err) { console.error(err); }
+    await audioEl.play();
   }
 
-  // show + animate waves
   started = true;
-  waveSlot.classList.add("active");
+  overlay.classList.add("active");
   startLoop();
-
-  // optional hide the button after starting
-  playWave.classList.add("hidden");
+  playBtn.classList.add("hidden");
 
   resizeCanvas();
 });
+
 
 </script>
 
 </body>
 </html>
+
 
 
